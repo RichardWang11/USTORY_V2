@@ -15,12 +15,13 @@ import b3
 from warnings import simplefilter # import warnings filter and ignore all future warnings
 simplefilter(action='ignore', category=FutureWarning)
 
-
+# 传参数时注意不带begin_date
 def simulate(file_path, window_size, slide_size, num_windows,
              min_articles, N, T, keyword_score, verbose, story_label,
              time_aware = True, theme_aware = True):
 
     article_df, all_vocab = read_dataset(file_path, story_label, verbose)
+    #begin_date已经自动获取到
     begin_date = article_df.date[0].strftime("%Y-%m-%d")
     
     all_window, window, cluster_keywords_df = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
@@ -38,15 +39,16 @@ def simulate(file_path, window_size, slide_size, num_windows,
         # [1] Get new slide and remove old slide from window
         from_date = pd.to_datetime(begin_date) + pd.DateOffset(days=i*slide_size)
         to_date = pd.to_datetime(begin_date) + pd.DateOffset(days=(i+1)*slide_size)
+        # slide是时间from_Date到to_date内的文章列表
         slide = article_df[(article_df['date'] >= from_date) & (article_df['date'] < to_date)].copy()   
-        
+        # 窗口索引的长度是否大于或等于窗口大小除以滑动大小，获取新的窗口，删除旧的窗口
         if len(window_indices) >= window_size/slide_size:
             all_window = pd.concat([all_window, window.loc[window_indices[0]]])
             window.drop(index = window_indices[0], inplace=True)
             window_indices.pop(0)
             article_df_slides.pop(0)
         
-        ## Update window indices and article df slides
+        ## Update window indices and article df slides（文章滑动窗口列表）
         if len(slide) < 1:
             article_df_slide = np.zeros(len(all_vocab)).reshape(1,-1)
         else:
