@@ -128,7 +128,7 @@ def simulate(file_path, window_size, slide_size, num_windows,
             nmi, ami, ri, ari, precision, recall, fscore)
 
 
-
+# 读取数据集，将sentence_embds转换为numpy形式，获取文章所有tf-idf特征词汇传给all_vocab
 def read_dataset(file_name, story_label, verbose):
     article_df = pd.read_json(file_name)
     
@@ -160,7 +160,7 @@ def eval_metric(label, cluster):
     
     return [nmi, ami, ri, ari, precision, recall, fscore]
 
-
+# 根据关键字（tf-idf or bm25）得分赋予每个句子权重，计算句子加权嵌入（weighted embd），返回加权嵌入向量slide
 def get_article_embedding(slide, window, article_df_slides, time_aware, theme_aware, keyword_score, N):
     start_time = time.time()
     if len(slide) < 1:
@@ -210,7 +210,7 @@ def get_article_embedding(slide, window, article_df_slides, time_aware, theme_aw
     
     return slide, time.time() - start_time
 
-
+# 获取每个cluster的主题关键词
 def get_cluster_theme(window, window_size, to_date, time_aware, cluster_tf_sum_dics, keyword_score, N):
     start_time = time.time()
     cluster_ids = list(set(window[window['cluster']>=0]['cluster']))
