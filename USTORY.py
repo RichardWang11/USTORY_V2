@@ -261,15 +261,16 @@ def assign_to_clusters(initial, verbose, window, window_size, to_date, cluster_c
                        cluster_topN_indices = None, cluster_topN_scores = None):
     
     start_time = time.time()
-
+    #根据初始值聚类中心的索引，如果是初始值，则考虑所有聚类中心，否则考虑窗口内文章的聚类中心
     if initial:
         considered_center_indices = list(range(len(cluster_centers)))
     else:
         considered_center_indices = list(set(window[window['cluster']>=0]['cluster']))
 
     if verbose: print("Assign to "+str(len(considered_center_indices))+" clusters")
+    # 计算输出阈值
     out_thred = (1-1/(len(considered_center_indices)+1))**T #+1 to handle a single cluster
-
+    # 考虑主题感知
     if theme_aware:
         sentence_tfs_all = vstack(window[window.cluster==-1]['sentence_TFs'].values)
         article_tfs_all = vstack(window[window.cluster==-1]['article_TF'].values)
@@ -278,7 +279,7 @@ def assign_to_clusters(initial, verbose, window, window_size, to_date, cluster_c
         for cluster_id in considered_center_indices:
             sentence_raw_weights_all[cluster_id] = np.array(np.sum(sentence_tfs_all[:,cluster_topN_indices[cluster_id]].multiply(cluster_topN_scores[cluster_id]), axis=1)).ravel()                       
             article_topN_tfs_all[cluster_id] = article_tfs_all[:,cluster_topN_indices[cluster_id]].toarray()
-            
+    # 考虑时间感知        
     if time_aware:
         time_weighted_center_dic = {}
         for uniq_date in window[window.cluster==-1].date.unique():
@@ -292,11 +293,14 @@ def assign_to_clusters(initial, verbose, window, window_size, to_date, cluster_c
                     if (to_date - date).days-1 >= window_size: break #consider only the window context
                     day_delta = np.abs((uniq_date - date).days)
                     time_weighted_num.append(np.exp(-day_delta/decaying_factor)*cluster_emb_sum_dics[cluster_id][date][1]) # time+amount weighted's average
+                    # 将时间加权分数和时间嵌入向量相乘（可以将时间加权部分应用于嵌入向量的数值部分），time_weighted_sum给定日期的嵌入向量的加权和
                     time_weighted_sum += np.exp(-day_delta/decaying_factor) * cluster_emb_sum_dics[cluster_id][date][0] 
+                # 计算时间加权嵌入向量地平均score
                 time_weighted_center = time_weighted_sum/sum(time_weighted_num)
+                # 将时间加权向量平均值、待定日期和聚类中心索引一起保存到time_W_c_dic中
                 time_weighted_center_dic[(pd.Timestamp(uniq_date), cluster_id)] = time_weighted_center
 
-            
+          
     num_processed_articles = 0
     num_processed_sentences = 0
     for (idx,article) in window[window.cluster==-1].iterrows():
